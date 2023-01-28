@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-#Script that constantly writes to a file
-
-ALTRU=true
-while [ $ALTRU ]
-do
-	echo "I am alive!" >> /tmp/my_process
-	sleep 2
+# Writes a string to a file indefinitely
+while [[ 1 -eq 1 ]]; do
+  echo "I am alive!" >> /tmp/my_process
+  sleep 2
 done
