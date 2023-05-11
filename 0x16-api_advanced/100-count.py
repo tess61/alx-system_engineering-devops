@@ -1,42 +1,54 @@
 #!/usr/bin/python3
-"""contains a function that parses the title of all hot articles,
-and prints a sorted count of given keywords"""
+"""Function to count words in all hot posts of a given Reddit subreddit."""
 import requests
 
 
-def recurse(subreddit, hot_list=[], after=''):
-    """returns top tens"""
+def count_words(subreddit, word_list, instances={}, after="", count=0):
+    """Prints counts of given words found in hot posts of a given subreddit.
+    Args:
+        subreddit (str): The subreddit to search.
+        word_list (list): The list of words to search for in post titles.
+        instances (obj): Key/value pairs of words/counts.
+        after (str): The parameter for the next page of the API results.
+        count (int): The parameter of results matched thus far.
+    """
+    url = "https://www.reddit.com/r/{}/hot/.json".format(subreddit)
     headers = {
-        'User-agent': 'cli:api_advanced:v1.0.0 (by /u/dereje77'
+        "User-Agent": "linux:0x16.api.advanced:v1.0.0 (by /u/bdov_)"
     }
-    if after is None:
-        return hot_list
+    params = {
+        "after": after,
+        "count": count,
+        "limit": 100
+    }
+    response = requests.get(url, headers=headers, params=params,
+                            allow_redirects=False)
+    try:
+        results = response.json()
+        if response.status_code == 404:
+            raise Exception
+    except Exception:
+        print("")
+        return
 
-    r = requests.get('https://www.reddit.com/r/{}/hot.json'.format(subreddit),
-                     params={'limit': 100, 'after': after},
-                     headers=headers,
-                     allow_redirects=False)
-    if r.status_code != 200:
-        return None
-    json = r.json()
-    for post in json['data']['children']:
-        hot_list.append(post['data']['title'])
-    return recurse(subreddit, hot_list, json['data']['after'])
-
-
-def count_words(subreddit, word_list):
-    """parses the title of all hot articles, and prints a sorted count
-    of given keywords"""
-    word_list = list(map(str.lower, word_list))
-    result = {}
-    titles = recurse(subreddit)
-    for title in titles:
+    results = results.get("data")
+    after = results.get("after")
+    count += results.get("dist")
+    for c in results.get("children"):
+        title = c.get("data").get("title").lower().split()
         for word in word_list:
-            if word in title:
-                if result.get(word) is None:
-                    result[word] = 0
-                result[word] += 1
-    result = [(k, v) for k, v in result.items()]
-    result.sort(key=lambda x: x[1], reverse=True)
-    for k, v in result:
-        print('{}: {}'.format(k, v))
+            if word.lower() in title:
+                times = len([t for t in title if t == word.lower()])
+                if instances.get(word) is None:
+                    instances[word] = times
+                else:
+                    instances[word] += times
+
+    if after is None:
+        if len(instances) == 0:
+            print("")
+            return
+        instances = sorted(instances.items(), key=lambda kv: (-kv[1], kv[0]))
+        [print("{}: {}".format(k, v)) for k, v in instances]
+    else:
+        count_words(subreddit, word_list, instances, after, count)
